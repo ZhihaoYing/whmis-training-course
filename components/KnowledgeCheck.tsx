@@ -1,10 +1,375 @@
-'use client';
-import {useState} from 'react';
-const qs=[
-{q:'What is one of the main purposes of WHMIS?',opts:['To replace workplace safety procedures','To provide workers with information about hazardous products','To eliminate the need for labels','To identify chemicals by colour'],correct:[1],multi:false,fb:'WHMIS communicates important information about hazardous products through labels, SDSs, and education and training.'},
-{q:'Which pictogram should make you think about a possible fire hazard?',opts:['Flame','Gas Cylinder','Biohazardous Infectious Materials','Corrosion'],correct:[0],multi:false,fb:'The Flame pictogram may be used for products that present fire-related hazards.'},
-{q:'Which label element describes the nature of a product hazard?',opts:['Supplier Identifier','Product Identifier','Hazard Statement','Precautionary Statement'],correct:[2],multi:false,fb:'Hazard statements describe the nature of the hazard associated with a hazardous product.'},
-{q:'A worker needs exposure-control and PPE information. Which SDS section should they check?',opts:['Section 4','Section 6','Section 7','Section 8'],correct:[3],multi:false,fb:'Section 8 provides exposure controls and personal protection information.'},
-{q:'Which actions support safe work with hazardous products? Select all that apply.',opts:['Read the product label','Check the SDS when more detail is needed','Follow workplace procedures','Use required PPE and controls','Ignore missing or damaged labels'],correct:[0,1,2,3],multi:true,fb:'Safe work includes reading labels, using SDS information, following procedures, and using required controls and PPE.'}
+
+"use client";
+
+import { useState } from "react";
+
+type Question = {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+};
+
+const questions: Question[] = [
+  {
+    question: "What is the main purpose of WHMIS?",
+    options: [
+      "To track employee attendance",
+      "To communicate information about hazardous workplace products",
+      "To replace workplace safety procedures",
+      "To classify employee job roles",
+    ],
+    correctIndex: 1,
+    explanation:
+      "WHMIS communicates hazard information so workers can understand hazards and work safely with hazardous products.",
+  },
+  {
+    question:
+      "Which three elements are central to WHMIS hazard communication?",
+    options: [
+      "Labels, SDSs, and worker education/training",
+      "Payroll, scheduling, and supervision",
+      "PPE, first aid, and transportation only",
+      "Labels, inventory, and employee records",
+    ],
+    correctIndex: 0,
+    explanation:
+      "WHMIS uses labels, Safety Data Sheets, and worker education and training to communicate hazard information.",
+  },
+  {
+    question:
+      "What should a worker do before using an unfamiliar hazardous product?",
+    options: [
+      "Use it immediately if the container looks safe",
+      "Read the label and review the SDS and workplace procedures",
+      "Ask another worker to test it",
+      "Remove the product label",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Workers should review the product label, SDS information, and applicable workplace procedures before use.",
+  },
+  {
+    question:
+      "Who is responsible for providing compliant supplier labels and SDSs?",
+    options: [
+      "Workers",
+      "Customers",
+      "Suppliers",
+      "Visitors",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Suppliers classify hazardous products and provide compliant labels and Safety Data Sheets.",
+  },
+  {
+    question:
+      "What should a worker do if a label is damaged or missing?",
+    options: [
+      "Ignore it",
+      "Use the product normally",
+      "Report the problem and follow workplace procedures",
+      "Guess the product hazards",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Damaged or missing labels should be reported so the product can be properly identified before use.",
+  },
 ];
-export default function KnowledgeCheck(){const [i,setI]=useState(0),[sel,setSel]=useState<number[]>([]),[sub,setSub]=useState(false),[done,setDone]=useState(false); const q=qs[i]; const good=sub&&q.correct.every(x=>sel.includes(x))&&sel.every(x=>q.correct.includes(x)); const choose=(x:number)=>{setSub(false);setSel(s=>q.multi?(s.includes(x)?s.filter(v=>v!==x):[...s,x]):[x])}; if(done)return <section className="section"><div className="quiz"><h2>Knowledge Check Complete</h2><p className="section-copy">You’re almost ready for the Final Assessment.</p><div className="complete">Activity Complete</div></div></section>; return <section className="section"><div className="section-head"><div><div className="eyebrow">Knowledge check</div><h2>Module 14 review</h2></div></div><div className="quiz"><div className="quiz-kicker">Question {i+1} of 5</div><div className="question">{q.q}</div>{q.opts.map((o,x)=><label className="option" key={o}><input type={q.multi?'checkbox':'radio'} name="kc" checked={sel.includes(x)} onChange={()=>choose(x)}/><span>{o}</span></label>)}<div className="quiz-actions"><button className="btn btn-primary" onClick={()=>setSub(true)} disabled={!sel.length}>Submit</button>{sub&&!good&&<button className="btn btn-secondary" onClick={()=>{setSel([]);setSub(false)}}>Try again</button>}{good&&<button className="btn btn-secondary" onClick={()=>{if(i===4)setDone(true);else{setI(i+1);setSel([]);setSub(false)}}}>{i===4?'Finish':'Continue'}</button>}</div>{sub&&<div className={`feedback ${good?'ok':'bad'}`}><b>{good?'Correct!':'Not quite.'}</b><br/>{q.fb}</div>}</div></section>}
+
+export default function KnowledgeCheck() {
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+
+  // Save one answer per question.
+  const [answers, setAnswers] = useState<(number | null)[]>(
+    () => questions.map(() => null)
+  );
+
+  const [finished, setFinished] = useState(false);
+
+  const question = questions[currentQuestion];
+  const selectedAnswer = answers[currentQuestion];
+
+  const answered = selectedAnswer !== null;
+  const isCorrect =
+    answered && selectedAnswer === question.correctIndex;
+
+  // Prevent double-counting when navigating between questions.
+  const score = questions.reduce((total, item, index) => {
+    return total + (answers[index] === item.correctIndex ? 1 : 0);
+  }, 0);
+
+  // Immediately show feedback when an option is selected.
+  function selectAnswer(index: number) {
+    if (answered) {
+      return;
+    }
+
+    setAnswers((previous) =>
+      previous.map((answer, questionIndex) =>
+        questionIndex === currentQuestion ? index : answer
+      )
+    );
+  }
+
+  // Clear only the current question's answer.
+  function tryAgain() {
+    if (!answered || isCorrect) {
+      return;
+    }
+
+    setAnswers((previous) =>
+      previous.map((answer, questionIndex) =>
+        questionIndex === currentQuestion ? null : answer
+      )
+    );
+  }
+
+  function previousQuestion() {
+    if (currentQuestion > 0) {
+      setCurrentQuestion((current) => current - 1);
+    }
+  }
+
+ 
+function nextQuestion() {
+  if (!answered) {
+    return;
+  }
+
+  if (currentQuestion === questions.length - 1) {
+    // All five questions have been answered.
+    setFinished(true);
+
+    // Notify the existing module completion controller.
+    window.dispatchEvent(
+      new CustomEvent("whmis-activity-complete", {
+        detail: {
+          slug: "knowledge-check",
+        },
+      })
+    );
+
+    return;
+  }
+
+  setCurrentQuestion((current) => current + 1);
+}
+
+
+  function reviewAnswers() {
+    setFinished(false);
+    setCurrentQuestion(0);
+  }
+
+  function retryQuiz() {
+    setCurrentQuestion(0);
+    setAnswers(questions.map(() => null));
+    setFinished(false);
+  }
+
+  if (finished) {
+    const percentage = Math.round(
+      (score / questions.length) * 100
+    );
+
+    return (
+      <div className="knowledge-result">
+        <div className="eyebrow">
+          Knowledge Check Result
+        </div>
+
+        <h2>
+          {score} / {questions.length}
+        </h2>
+
+        <p>
+          You scored {percentage}%. Review any topics
+          you were unsure about before continuing to
+          the final assessment.
+        </p>
+
+        <div className="knowledge-score-bar">
+          <div
+            className="knowledge-score-fill"
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+
+        <div
+          className="knowledge-actions"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+            width: "100%",
+            flexWrap: "wrap",
+          }}
+        >
+          <button
+            type="button"
+            className="knowledge-primary-button"
+            onClick={reviewAnswers}
+            style={{ marginRight: "auto" }}
+          >
+            ← Review Answers
+          </button>
+
+          <button
+            type="button"
+            className="knowledge-primary-button"
+            onClick={retryQuiz}
+            style={{ marginLeft: "auto" }}
+          >
+            Retry Knowledge Check
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const progress =
+    ((currentQuestion + 1) / questions.length) * 100;
+
+  return (
+    <div className="knowledge-check">
+      <div className="knowledge-header">
+        <div>
+          <div className="eyebrow">
+            General WHMIS Review
+          </div>
+
+          <h2>Knowledge Check</h2>
+
+          <p>
+            Review the key concepts from General
+            WHMIS Training.
+          </p>
+        </div>
+
+        <div className="knowledge-progress-text">
+          Question {currentQuestion + 1} of{" "}
+          {questions.length}
+        </div>
+      </div>
+
+      <div className="knowledge-progress">
+        <div
+          className="knowledge-progress-fill"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+
+      <div className="knowledge-question-card">
+        <h3>{question.question}</h3>
+
+        <div className="knowledge-options">
+          {question.options.map((option, index) => {
+            let stateClass = "";
+
+            if (answered) {
+              if (index === question.correctIndex) {
+                stateClass = "correct";
+              } else if (index === selectedAnswer) {
+                stateClass = "incorrect";
+              }
+            }
+
+            return (
+              <button
+                key={index}
+                type="button"
+                disabled={answered}
+                aria-pressed={selectedAnswer === index}
+                className={`knowledge-option ${stateClass}`}
+                onClick={() => selectAnswer(index)}
+              >
+                <span className="knowledge-option-letter">
+                  {String.fromCharCode(65 + index)}
+                </span>
+
+                <span>{option}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Immediate feedback and Try Again */}
+        {answered && (
+          <div
+            className={`knowledge-feedback ${
+              isCorrect ? "correct" : "incorrect"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <strong>
+              {isCorrect ? "Correct!" : "Not quite"}
+            </strong>
+
+            <p>{question.explanation}</p>
+
+            {!isCorrect && (
+              <button
+                type="button"
+                onClick={tryAgain}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginTop: "14px",
+                  padding: "10px 18px",
+                  borderRadius: "10px",
+                  border: "1px solid #dc2626",
+                  backgroundColor: "#ffffff",
+                  color: "#b91c1c",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                ↻ Try Again
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Previous on left, Next on right */}
+        <div
+          className="knowledge-actions"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+            width: "100%",
+            flexWrap: "wrap",
+          }}
+        >
+          {currentQuestion > 0 && (
+            <button
+              type="button"
+              className="knowledge-primary-button"
+              onClick={previousQuestion}
+              style={{ marginRight: "auto" }}
+            >
+              ← Previous Question
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="knowledge-primary-button"
+            onClick={nextQuestion}
+            disabled={!answered}
+            style={{ marginLeft: "auto" }}
+          >
+            {currentQuestion === questions.length - 1
+              ? "View Result →"
+              : "Next Question →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
